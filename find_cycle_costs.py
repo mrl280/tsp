@@ -1,3 +1,7 @@
+"""
+Find the cycle costs from the input cost matrix using pre-computed Hamiltonian cycles.
+"""
+
 import numpy as np
 from numpy.typing import ArrayLike
 
@@ -35,7 +39,7 @@ def find_cycle_costs(A: ArrayLike) -> ArrayLike:
     # Remove all infinities and nans.
     A = np.nan_to_num(A, copy=True, nan=0.0, posinf=n * max_cost)
 
-    # Use the precomputed Hamiltonian cycles to compute the costs
+    # Use the precomputed Hamiltonian cycles to compute the costs.
     hamiltonian_cycles = pre_computed_hamiltonian_cycles(n=n)
     number_of_cycles = len(hamiltonian_cycles)
 
