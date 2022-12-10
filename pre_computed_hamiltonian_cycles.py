@@ -1,17 +1,20 @@
-from numpy.typing import ArrayLike
+"""
+We assume access to pre-computed Hamiltonian cycles, they are defined herein.
+"""
+from typing import Tuple
 
 
-def pre_computed_hamiltonian_cycles(n: int) -> ArrayLike:
+def pre_computed_hamiltonian_cycles(n: int) -> list[list[Tuple]]:
     """
     Return a list of pre-computed Hamiltonian cycles.
 
     For a cost matrix of size n (n cities) there are (n - 1)! Hamiltonian cycles.
 
     :param n: int:
-        The dimension of the provided cost matrix A (the number of cities in the problem)
+        The dimension of the provided cost matrix A (the number of cities in the problem).
 
     :return: list of lists tuples:
-        A list of list of Hamiltonian cycles.
+        A list of Hamiltonian cycles.
         Each Hamiltonian cycle is a list of n tuples corresponding to the indices containing the costs for the cycle.
     """
 
