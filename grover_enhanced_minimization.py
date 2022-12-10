@@ -70,10 +70,25 @@ def grover_enhanced_minimization(arr: list[int], _lower_bound: int = 0, _upper_b
         return _upper_bound
 
 
-def grover_for_minimization_classical(arr, x) -> bool:
+def grover_for_minimization_classical(arr: list[int], x: int) -> bool:
     """
     This is a classical function that performs the same function as grover_for_minimization().
-    That is, check if arr contains an element such that lower_bound < element < x.
+    That is, check if arr contains an element < x.
+
+    :return: bool:
+        True: We found an element in arr < x.
+        False: otherwise.
+    """
+    for i in range(len(arr)):
+        if arr[i] < x:
+            return True  # We have found a smaller value
+
+    return False  # No element in list > middle
+
+
+def grover_for_minimization(arr: list[int], x: int) -> bool:
+    """
+    Check if arr contains an element < x.
 
     :return: bool:
         True: We found an element in arr < x.
