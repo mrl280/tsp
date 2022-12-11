@@ -54,27 +54,41 @@ def find_cycle_costs(A: ArrayLike) -> ArrayLike:
 
 if __name__ == "__main__":
 
-    print("n = 3:")
-    A3 = np.asarray([[3, 7, 2],
-                     [5, 12, 9],
-                     [17, 1, np.inf]])
+    # print("n = 3:")
+    # A3 = np.asarray([[3, 7, 2],
+    #                  [5, 12, 9],
+    #                  [17, 1, np.inf]])
+    #
+    # print("\nA:")
+    # print(A3)
+    #
+    # print("\ncosts:")
+    # costs = find_cycle_costs(A=A3)
+    # print(costs)
+    #
+    # print("\nn = 4:")
+    # A4 = np.asarray([[3, 7, 2, 19],
+    #                  [5, 12, np.nan, 5],
+    #                  [17, 1, np.inf, 2.4],
+    #                  [3, 13, 13, 12]])
+    #
+    # print("\nA:")
+    # print(A4)
+    #
+    # print("\ncosts:")
+    # costs = find_cycle_costs(A=A4)
+    # print(costs)
+
+    # Poster Example
+    print("\nPoster Example, n = 4:")
+    A = np.asarray([[0, 7, 2, 7],
+                    [5, 0, 3, 5],
+                    [2, 1, 0, 8],
+                    [3, 13, 6, 0]])
 
     print("\nA:")
-    print(A3)
+    print(A)
 
     print("\ncosts:")
-    costs = find_cycle_costs(A=A3)
-    print(costs)
-
-    print("\nn = 4:")
-    A4 = np.asarray([[3, 7, 2, 19],
-                     [5, 12, np.nan, 5],
-                     [17, 1, np.inf, 2.4],
-                     [3, 13, 13, 12]])
-
-    print("\nA:")
-    print(A4)
-
-    print("\ncosts:")
-    costs = find_cycle_costs(A=A4)
+    costs = find_cycle_costs(A=A)
     print(costs)

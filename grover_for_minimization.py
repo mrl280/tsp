@@ -1,9 +1,11 @@
 """
-Gover search algorithm for minimization
+Gover search for minimization.
 """
 import math
 
 import pennylane as qml
+import matplotlib.pyplot as plt
+
 from numpy import pi as pi
 
 
@@ -38,7 +40,7 @@ def minimization_oracle(data_register: list[int], ancillary_register: list[int],
         qml.QFT(wires=ancillary_register)
 
         # Loop through each of the data wires, preforming controlled additions.
-        for wire in range(len(arr)):
+        for wire in data_register:
             qml.ctrl(op=add_k_fourier, control=wire)(k=arr[wire], wires=ancillary_register)
 
         # Return to the computational basis
@@ -55,7 +57,8 @@ def minimization_oracle(data_register: list[int], ancillary_register: list[int],
     qml.adjoint(fn=load_values_in_arr)()  # Cleanup.
 
 
-def minimization_circuit(data_register: list[int], ancillary_register: list[int], arr: list[int], x: int) -> list:
+def minimization_circuit(data_register: list[int], ancillary_register: list[int], arr: list[int], x: int,
+                         ret: str = "sample") -> list:
     """
     A quantum circuit to find a value in arr that is less than x.
 
@@ -74,14 +77,17 @@ def minimization_circuit(data_register: list[int], ancillary_register: list[int]
     for wire in data_register:
         qml.Hadamard(wires=wire)
 
-    # for _ in range(4):
-    # Step 2: Use the oracle to mark solution states.
-    minimization_oracle(data_register=data_register, ancillary_register=ancillary_register, arr=arr, x=x)
+    for _ in range(3):
+        # Step 2: Use the oracle to mark solution states.
+        minimization_oracle(data_register=data_register, ancillary_register=ancillary_register, arr=arr, x=x)
 
-    # Step 3: Apply the Grover operator to amplify the probability of getting the correct solution.
-    qml.GroverOperator(wires=data_register)
+        # Step 3: Apply the Grover operator to amplify the probability of getting the correct solution.
+        qml.GroverOperator(wires=data_register)
 
-    return qml.probs(wires=data_register)
+    if ret == "probs":
+        return qml.probs(wires=data_register)
+    else:
+        return qml.sample(wires=data_register)
 
 
 def grover_for_minimization(arr: list[int], x: int) -> bool:
@@ -95,49 +101,63 @@ def grover_for_minimization(arr: list[int], x: int) -> bool:
         True: We found an element in arr < x.
         False: otherwise.
     """
-    # We need enough qubits to represent 0 -> sum(arr). You can represent up to 2^n - 1 with n bits
-    # This makes sure we can represent all sum compbinations with no wrapping
-    number_qubits_required = math.ceil(math.log(sum(arr) + 1, 2))
+    # We need one wire in the data register for each element of arr.
+    number_of_data_qubits_required = len(arr)
+
+    # We need enough ancillary qubits to represent 0 -> sum(arr) or x, whichever is larger.
+    #  Recall you can represent up to 2^n - 1 with n bits.
+    number_ancillary_qubits_required = max(math.ceil(math.log(sum(arr) + 1, 2)), math.ceil(math.log(x + 1, 2)))
     # print("number of qubits required:")
     # print(number_qubits_required)
 
-    data_register = list(range(0, number_qubits_required))
-    ancillary_register = list(range(number_qubits_required, 2 * number_qubits_required))  # Oracle work space.
+    data_register = list(range(0, number_of_data_qubits_required))  # One data qubit for each element of arr
+    ancillary_register = list(range(number_of_data_qubits_required,
+                                    number_of_data_qubits_required + number_ancillary_qubits_required))
     # print(data_register)
     # print(ancillary_register)
 
-    device = qml.device("default.qubit", wires=data_register + ancillary_register)
-    qnode = qml.qnode(func=minimization_circuit, device=device)(
-        data_register=data_register, ancillary_register=ancillary_register, arr=arr, x=x)
+    # # We will create 2 devices, one first for creating a plot of the probabilities.
+    # device1 = qml.device("default.qubit", wires=data_register + ancillary_register)
+    # qnode1 = qml.qnode(func=minimization_circuit, device=device1)(
+    #     data_register=data_register, ancillary_register=ancillary_register, arr=arr, x=x, ret="probs")
+    #
+    # # Obtain and plot a probablity distribution.
+    # values = qnode1.__call__(data_register=data_register, ancillary_register=ancillary_register, arr=arr, x=x,
+    #                          ret="probs")
+    # print("\nlen(values):")  # Four bits can encode 16 distinct characters
+    # print(len(values))
+    # print("\nvalues:")
+    # print(values)
+    # plt.bar(range(len(values)), values)
+    # plt.show()
 
-    # Go ahead and actually run it.
-    values = qnode.__call__(data_register=data_register, ancillary_register=ancillary_register, arr=arr, x=x)
+    # The second device for actully obtaining a sample.
+    device2 = qml.device("default.qubit", wires=data_register + ancillary_register, shots=1)
+    qnode2 = qml.qnode(func=minimization_circuit, device=device2)(
+        data_register=data_register, ancillary_register=ancillary_register, arr=arr, x=x, ret="sample")
 
-    print("\nlen(values):")  # Four bits can encode 16 distinct characters
-    print(len(values))
-    print("\nvalues:")
-    print(values)
+    sample = qnode2.__call__(data_register=data_register, ancillary_register=ancillary_register, arr=arr, x=x,
+                             ret="sample")
+    print(sample)
 
-    plt.bar(range(len(values)), values)
+    found_elements = [i for indx, i in enumerate(arr) if sample[indx] == 1]
+    print("Found elements: " + str(found_elements))
 
-    plt.show()
+    if len(found_elements) > 0:
+        if found_elements[0] < x:
+            # If the found value is actually less than result, great!
+            return True
 
-    # if result < x:
-    #     # If the returned value is actually less than result, great!
-    #     return True
-    # else:
-    #     # No such element exists.
-    #     return False
-
+    # No such element exists.
     return False
 
 
 if __name__ == "__main__":
-    import matplotlib.pyplot as plt
 
-    arr_ = [18, 10, 6, 7]
+    # arr_ = [18, 10, 6, 7]
     # arr_ = [3, 5, 4, 3]
-    x_ = 63
+    arr_ = [7, 10, 6, 18]
+    x_ = 14
 
     found_number_smaller_than_x = grover_for_minimization(arr=arr_, x=x_)
 

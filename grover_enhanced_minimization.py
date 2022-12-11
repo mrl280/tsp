@@ -5,6 +5,7 @@ C. Durr and P. Hoyer, “A Quantum Algorithm for Finding the Minimum,” 1996, d
 
 Binary search code courtesy of https://www.geeksforgeeks.org/python-program-for-binary-search/.
 """
+from grover_for_minimization import grover_for_minimization
 
 
 def grover_enhanced_minimization(arr: list[int], _lower_bound: int = 0, _upper_bound: int = None,
@@ -49,7 +50,8 @@ def grover_enhanced_minimization(arr: list[int], _lower_bound: int = 0, _upper_b
         middle = (_upper_bound + _lower_bound) // 2
 
         # Using Grover, check if there is an element smaller than the middle value.
-        smaller_element_exists = grover_for_minimization_classical(arr=arr, x=middle)
+        # smaller_element_exists = grover_for_minimization_classical(arr=arr, x=middle)
+        smaller_element_exists = grover_for_minimization(arr=arr, x=middle)
 
         if smaller_element_exists:
             # There is at least one element smaller than middle, lower our upper bound.
@@ -81,29 +83,20 @@ def grover_for_minimization_classical(arr: list[int], x: int) -> bool:
     """
     for i in range(len(arr)):
         if arr[i] < x:
-            return True  # We have found a smaller value
-
-    return False  # No element in list > middle
-
-
-def grover_for_minimization(arr: list[int], x: int) -> bool:
-    """
-    Check if arr contains an element < x.
-
-    :return: bool:
-        True: We found an element in arr < x.
-        False: otherwise.
-    """
-    for i in range(len(arr)):
-        if arr[i] < x:
-            return True  # We have found a smaller value
+            return True  # We have found a smaller value!
 
     return False  # No element in list > middle
 
 
 if __name__ == "__main__":
 
-    test_array = [18, 15, 17, 16, 11, 45, 9]
-    result = grover_enhanced_minimization(arr=test_array, verbose=True)
+    test_array = [27, 15, 17, 16, 3, 45, 9]
 
-    print(result)
+    results = [0] * 100
+    for i in range(100):
+        results[i] = grover_enhanced_minimization(arr=test_array, verbose=True)
+        print("###")
+        print("MIN: " + str(results[i]))
+        print("###")
+
+    print(results)
