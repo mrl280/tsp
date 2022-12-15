@@ -1,15 +1,20 @@
 """
 Gover search for minimization.
+
+G. L. Long, “Grover algorithm with zero theoretical failure rate,” Physical review. A, Atomic, molecular, and optical
+ physics, vol. 64, no. 2, p. 022307/4–, 2001, doi: 10.1103/PhysRevA.64.022307.
 """
 import math
 
+import numpy as np
 import pennylane as qml
 import matplotlib.pyplot as plt
 
 from numpy import pi as pi
 
 
-def minimization_oracle(data_register: list[int], ancillary_register: list[int], arr: list[int], x: int) -> None:
+def minimization_oracle(data_register: list[int], ancillary_register: list[int], arr: list[int], x: int,
+                        phi: float) -> None:
     """
     Marking oracle to flip the signs of the elements that satisfy the minimization condition:
         Mark states |i> (take |i> to -|i>) if arr[i] < x.
@@ -20,6 +25,7 @@ def minimization_oracle(data_register: list[int], ancillary_register: list[int],
         Our helper qubits.
     :param arr: List of ints.
     :param x: int.
+    :param phi: # TODO
 
     :return: None, operation is done in place.
     """
@@ -52,9 +58,60 @@ def minimization_oracle(data_register: list[int], ancillary_register: list[int],
     #  maked. Anyway, arr should never contain any 0's. If we get a sum of elements on the ancillary wires that is < x,
     #  then there must be at least one element in arr that is less than x.
     for i in range(1, x):
-        qml.FlipSign(i, wires=ancillary_register)
+
+        # To make deterministic, we replace the phase inversion by a phase rotation through phi
+        # See Long et al. for more
+        # qml.OrbitalRotation(phi=phi, wires=ancillary_register)
+
+        # qml.FlipSign(i, wires=ancillary_register)
+
+        # Implement flip_sign in pauli primatives
+        arr_bin = to_list(n=i, n_wires=len(ancillary_register))  # Turn i into a state
+        print("arr_bin: " + str(arr_bin))
+
+        # qml.RZ(phi=pi / 2, wires=ancillary_register[-1])
+        # make sure the last bit is not 0 - idk why
+        if arr_bin[-1] == 0:
+            qml.PauliX(wires=ancillary_register[-1])
+
+        # qml.ctrl(qml.PauliZ, control=ancillary_register[:-1], control_values=arr_bin[:-1])(
+        #             wires=ancillary_register[-1])
+
+        # Perform RZ instead of Pauli-Z
+        if arr_bin[-1] == 0:
+            qml.RZ(phi=pi, wires=ancillary_register[-1])
+        qml.ctrl(qml.PauliX, control=ancillary_register[:-1], control_values=arr_bin[:-1])(
+            wires=ancillary_register[-1])
+        if arr_bin[-1] == 0:
+            qml.RZ(phi=-pi, wires=ancillary_register[-1])
+        qml.ctrl(qml.PauliX, control=ancillary_register[:-1], control_values=arr_bin[:-1])(
+            wires=ancillary_register[-1])
+
+        if arr_bin[-1] == 0:
+            qml.PauliX(wires=ancillary_register[-1])
+
+        # qml.RZ(phi=-pi / 2, wires=ancillary_register[-1])
 
     qml.adjoint(fn=load_values_in_arr)()  # Cleanup.
+
+
+def to_list(n, n_wires):
+    r"""Convert an integer into a binary integer list
+    Args:
+        n (int): Basis state as integer
+        n_wires (int): Numer of wires to transform the basis state
+    Raises:
+        ValueError: "cannot encode n with n wires "
+    Returns:
+        (array[int]): integer binary array
+    """
+    # From PennyLane
+    if n >= 2 ** n_wires:
+        raise ValueError(f"cannot encode {n} with {n_wires} wires ")
+
+    b_str = f"{n:b}".zfill(n_wires)
+    bin_list = [int(i) for i in b_str]
+    return bin_list
 
 
 def minimization_circuit(data_register: list[int], ancillary_register: list[int], arr: list[int], x: int,
@@ -77,9 +134,20 @@ def minimization_circuit(data_register: list[int], ancillary_register: list[int]
     for wire in data_register:
         qml.Hadamard(wires=wire)
 
-    for _ in range(3):
+    beta = 1 / math.sqrt(len(arr))
+    j_op = math.floor((pi / 2 - beta) / (2 * beta))
+    phi = 2 * math.asin(math.sin(pi / (4 * j_op + 6)) / math.sin(beta))
+    print("phi: " + str(phi))
+    print("j_op: " + str(j_op))
+    print("beta: " + str(beta))
+    # Upon measurment at the (J + 1)th iteration, the marked state is obtained with certainty.
+
+    # optimal_number_of_iterations = 1
+    # optimal_number_of_iterations = math.floor(pi/4 * math.sqrt(len(arr)))
+    # print("Optimal number of Grover iterations: " + str(optimal_number_of_iterations))
+    for _ in range(j_op + 1):
         # Step 2: Use the oracle to mark solution states.
-        minimization_oracle(data_register=data_register, ancillary_register=ancillary_register, arr=arr, x=x)
+        minimization_oracle(data_register=data_register, ancillary_register=ancillary_register, arr=arr, x=x, phi=phi)
 
         # Step 3: Apply the Grover operator to amplify the probability of getting the correct solution.
         qml.GroverOperator(wires=data_register)
@@ -116,20 +184,20 @@ def grover_for_minimization(arr: list[int], x: int) -> bool:
     # print(data_register)
     # print(ancillary_register)
 
-    # # We will create 2 devices, one first for creating a plot of the probabilities.
-    # device1 = qml.device("default.qubit", wires=data_register + ancillary_register)
-    # qnode1 = qml.qnode(func=minimization_circuit, device=device1)(
-    #     data_register=data_register, ancillary_register=ancillary_register, arr=arr, x=x, ret="probs")
-    #
-    # # Obtain and plot a probablity distribution.
-    # values = qnode1.__call__(data_register=data_register, ancillary_register=ancillary_register, arr=arr, x=x,
-    #                          ret="probs")
-    # print("\nlen(values):")  # Four bits can encode 16 distinct characters
-    # print(len(values))
-    # print("\nvalues:")
-    # print(values)
-    # plt.bar(range(len(values)), values)
-    # plt.show()
+    # We will create 2 devices, one first for creating a plot of the probabilities.
+    device1 = qml.device("default.qubit", wires=data_register + ancillary_register)
+    qnode1 = qml.qnode(func=minimization_circuit, device=device1)(
+        data_register=data_register, ancillary_register=ancillary_register, arr=arr, x=x, ret="probs")
+
+    # Obtain and plot a probablity distribution.
+    values = qnode1.__call__(data_register=data_register, ancillary_register=ancillary_register, arr=arr, x=x,
+                             ret="probs")
+    print("\nlen(values):")  # Four bits can encode 16 distinct characters
+    print(len(values))
+    print("\nvalues:")
+    print(values)
+    plt.bar(range(len(values)), values)
+    plt.show()
 
     # The second device for actully obtaining a sample.
     device2 = qml.device("default.qubit", wires=data_register + ancillary_register, shots=1)
@@ -156,8 +224,8 @@ if __name__ == "__main__":
 
     # arr_ = [18, 10, 6, 7]
     # arr_ = [3, 5, 4, 3]
-    arr_ = [7, 10, 6, 18]
-    x_ = 14
+    arr_ = [36, 10, 6, 18, 12]
+    x_ = 9
 
     found_number_smaller_than_x = grover_for_minimization(arr=arr_, x=x_)
 
