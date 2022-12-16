@@ -1,6 +1,6 @@
 """
 Author: Michael Luciuk
-Date    Dec, 2022
+Date:   Dec, 2022
 
 Here, we investigate using phase estimation to obtain the cycle costs.
 
@@ -18,8 +18,9 @@ import math
 import pennylane as qml
 from pennylane.templates import QuantumPhaseEstimation
 from pennylane import numpy as np
-
 from typing import Tuple
+
+from find_cycle_costs import find_cycle_costs
 
 
 def build_U(A: list[list[int]], verbose: False) -> Tuple[np.asarray, Tuple[float, float]]:
@@ -80,15 +81,15 @@ def phase_estimation(U: list[list]):
     """
 
     # The number of target wires required depends on the size of U
-    n_target_wires = math.ceil(math.log(len(U_), 2))
+    n_target_wires = math.ceil(math.log(len(U), 2))
 
     # We get to choose the number of estimation wires to use. The error in our estimate will decrease exponentially
     #  with the number of estimation qubits.
     n_estimation_wires = 5
 
-    thetas = np.full(shape=len(U_), fill_value=np.nan)
+    thetas = np.full(shape=len(U), fill_value=np.nan)
 
-    for i in range(len(U_)):
+    for i in range(len(U)):
         # Perform phase estimation to solve U|i> = lambda |i>
 
         target_wires = list(range(0, n_target_wires))
@@ -137,7 +138,6 @@ def phase_estimation_circuit(unitary: list[list[float]], target_wires: list[int]
 
 
 if __name__ == "__main__":
-    from find_cycle_costs import find_cycle_costs
 
     print("n = 3:")
     A3 = np.asarray([[3, 7, 2],
