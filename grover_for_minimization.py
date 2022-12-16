@@ -1,12 +1,18 @@
 """
-Gover search for minimization.
+Author: Michael Luciuk
+Date:   Dec, 2022
+
+Gover search for minimization. Uses the Long et al. improvement to increase probability of success for a large number
+ of cities.
+
+L. Grover, “A fast quantum mechanical algorithm for database search,” in Proceedings of the twenty-eighth annual ACM
+ symposium on theory of computing, 1996, pp. 212–219. doi: 10.1145/237814.237866.
 
 G. L. Long, “Grover algorithm with zero theoretical failure rate,” Physical review. A, Atomic, molecular, and optical
  physics, vol. 64, no. 2, p. 022307/4–, 2001, doi: 10.1103/PhysRevA.64.022307.
 """
 import math
 
-import numpy as np
 import pennylane as qml
 import matplotlib.pyplot as plt
 
@@ -16,8 +22,10 @@ from numpy import pi as pi
 def minimization_oracle(data_register: list[int], ancillary_register: list[int], arr: list[int], x: int,
                         phi: float) -> None:
     """
-    Marking oracle to flip the signs of the elements that satisfy the minimization condition:
-        Mark states |i> (take |i> to -|i>) if arr[i] < x.
+    Originally, this marking oracle would flip the signs of the elements that satisfies the minimization condition.
+        That is: mark states |i> (take |i> to -|i>) if arr[i] < x.
+
+    With the Long et al. upgrade, this phase inversion is now replaces by a phase rotation through angle phi.
 
     :param data_register: List of ints:
         Our main data qubits.
@@ -25,7 +33,9 @@ def minimization_oracle(data_register: list[int], ancillary_register: list[int],
         Our helper qubits.
     :param arr: List of ints.
     :param x: int.
-    :param phi: # TODO
+    :param phi: flaot:
+        As explained in Long et al., we can replace the classic phase inversion by a phase rotation through angle phi
+         to increase our success rate.
 
     :return: None, operation is done in place.
     """
@@ -49,54 +59,49 @@ def minimization_oracle(data_register: list[int], ancillary_register: list[int],
         for wire in data_register:
             qml.ctrl(op=add_k_fourier, control=wire)(k=arr[wire], wires=ancillary_register)
 
-        # Return to the computational basis
+        # Return to the computational basis.
         qml.adjoint(fn=qml.QFT(wires=ancillary_register))
 
     load_values_in_arr()
 
     # Loop thorugh all integers in the range 1 to x-1. Notice we start at 1 because the all 0's state would always be
-    #  maked. Anyway, arr should never contain any 0's. If we get a sum of elements on the ancillary wires that is < x,
-    #  then there must be at least one element in arr that is less than x.
+    #  marked. Anyway, in the TSP context arr should never contain any 0's. If we get a sum of elements on the
+    #  ancillary wires that is < x, then there must be at least one element in arr that is less than x.
     for i in range(1, x):
 
-        # To make deterministic, we replace the phase inversion by a phase rotation through phi
-        # See Long et al. for more
-        # qml.OrbitalRotation(phi=phi, wires=ancillary_register)
-
         # qml.FlipSign(i, wires=ancillary_register)
+        # To improve sucess, we replace the phase inversion by a phase rotation through phi.
 
         # Implement flip_sign in pauli primatives
-        arr_bin = to_list(n=i, n_wires=len(ancillary_register))  # Turn i into a state
-        print("arr_bin: " + str(arr_bin))
+        arr_bin = to_list(n=i, n_wires=len(ancillary_register))  # Turn i into a state.
 
-        # qml.RZ(phi=pi / 2, wires=ancillary_register[-1])
-        # make sure the last bit is not 0 - idk why
         if arr_bin[-1] == 0:
             qml.PauliX(wires=ancillary_register[-1])
 
         # qml.ctrl(qml.PauliZ, control=ancillary_register[:-1], control_values=arr_bin[:-1])(
         #             wires=ancillary_register[-1])
 
-        # Perform RZ instead of Pauli-Z
+        # Perform with RZ instead of Pauli-Z so we can do an arbitrary angle.
         if arr_bin[-1] == 0:
-            qml.RZ(phi=pi, wires=ancillary_register[-1])
+            qml.RZ(phi=phi, wires=ancillary_register[-1])
         qml.ctrl(qml.PauliX, control=ancillary_register[:-1], control_values=arr_bin[:-1])(
             wires=ancillary_register[-1])
         if arr_bin[-1] == 0:
-            qml.RZ(phi=-pi, wires=ancillary_register[-1])
+            qml.RZ(phi=-phi, wires=ancillary_register[-1])
         qml.ctrl(qml.PauliX, control=ancillary_register[:-1], control_values=arr_bin[:-1])(
             wires=ancillary_register[-1])
 
         if arr_bin[-1] == 0:
             qml.PauliX(wires=ancillary_register[-1])
 
-        # qml.RZ(phi=-pi / 2, wires=ancillary_register[-1])
-
     qml.adjoint(fn=load_values_in_arr)()  # Cleanup.
 
 
 def to_list(n, n_wires):
-    r"""Convert an integer into a binary integer list
+    """
+    This function is copy and pasted straight out of PennyLane!
+
+    Convert an integer into a binary integer list
     Args:
         n (int): Basis state as integer
         n_wires (int): Numer of wires to transform the basis state
@@ -126,26 +131,30 @@ def minimization_circuit(data_register: list[int], ancillary_register: list[int]
     :param arr: list of ints.
     :param x: int.
 
-    :return: list:
-        A flat array containing the probabilities of measuring each basis state.
+    :param ret: str (optional; default is "sample"):
+        "sample": return sample.
+        "probs": return probabilities.
+
+    :return: Depends on input paramter ret.
     """
 
     # Step 1: Create an equal superposition by applying a Hadamard to each wire in the data register.
     for wire in data_register:
         qml.Hadamard(wires=wire)
 
-    beta = 1 / math.sqrt(len(arr))
+    # Compute some of the parameters defined in Long et al.
+    beta = math.asin(1 / math.sqrt(len(arr)))
     j_op = math.floor((pi / 2 - beta) / (2 * beta))
-    phi = 2 * math.asin(math.sin(pi / (4 * j_op + 6)) / math.sin(beta))
+    j = j_op
+    phi = 2 * math.asin(math.sin(pi / (4 * j + 6)) / math.sin(beta))
+
     print("phi: " + str(phi))
     print("j_op: " + str(j_op))
+    print("j: " + str(j))
     print("beta: " + str(beta))
     # Upon measurment at the (J + 1)th iteration, the marked state is obtained with certainty.
 
-    # optimal_number_of_iterations = 1
-    # optimal_number_of_iterations = math.floor(pi/4 * math.sqrt(len(arr)))
-    # print("Optimal number of Grover iterations: " + str(optimal_number_of_iterations))
-    for _ in range(j_op + 1):
+    for _ in range(j+1):
         # Step 2: Use the oracle to mark solution states.
         minimization_oracle(data_register=data_register, ancillary_register=ancillary_register, arr=arr, x=x, phi=phi)
 
@@ -224,16 +233,9 @@ if __name__ == "__main__":
 
     # arr_ = [18, 10, 6, 7]
     # arr_ = [3, 5, 4, 3]
-    arr_ = [36, 10, 6, 18, 12]
-    x_ = 9
+    arr_ = [36, 5, 8, 14, 15, 2, 4, 16]
+    x_ = 3
 
     found_number_smaller_than_x = grover_for_minimization(arr=arr_, x=x_)
 
-    print("Found a number smaller than x:")
-    print(found_number_smaller_than_x)
-
-    # Number of qubits should depend on the sum of arr - make sure we don't roll over!
-
-    # With 4 qubits we can represent 16 numbers (0 -> 15)
-    data_register_ = [0, 1, 2, 3]  # 6 qubits
-    ancillary_register_ = [4, 5, 6, 7]  # 4 work qubits
+    print("Found a number smaller than x: " + str(found_number_smaller_than_x))
