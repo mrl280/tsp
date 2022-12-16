@@ -1,23 +1,25 @@
 """
-Find the cycle costs from the input cost matrix using pre-computed Hamiltonian cycles.
+Author: Michael Luciuk
+Date    Dec, 2022
+
+Find the cycle costs from an input cost matrix using pre-computed Hamiltonian cycles.
 """
 
 import numpy as np
-from numpy.typing import ArrayLike
 
 from pre_computed_hamiltonian_cycles import pre_computed_hamiltonian_cycles
 
 
-def find_cycle_costs(A: ArrayLike) -> ArrayLike:
+def find_cycle_costs(A: list[list[int]]) -> list:
     """
-    Given a cost matrix A, find the total cost of each Hamiltonian cycle (Hamiltonian cycles are precomputed)
+    Given a cost matrix A, find the total cost of each Hamiltonian cycle (Hamiltonian cycles are precomputed).
 
-    :param A:
+    :param A: 2d list of ints:
         A square cost matrix, where <i|A|j> is the cost to travel from city i to city j where 0 < i, j < len(A).
         All elements must be >= 0.
 
     :return: np.array:
-        A 1-d array of len((n - 1)!) containing cycle costs
+        A 1-d array of len((n - 1)!) containing the cycle costs.
     """
     try:
         A = np.asarray(A)
@@ -49,46 +51,46 @@ def find_cycle_costs(A: ArrayLike) -> ArrayLike:
         for t in cycle:
             cycle_costs[i] += A[t[0], t[1]]
 
-    return cycle_costs
+    return list(cycle_costs.astype(int))
 
 
 if __name__ == "__main__":
 
-    # print("n = 3:")
-    # A3 = np.asarray([[3, 7, 2],
-    #                  [5, 12, 9],
-    #                  [17, 1, np.inf]])
-    #
-    # print("\nA:")
-    # print(A3)
-    #
-    # print("\ncosts:")
-    # costs = find_cycle_costs(A=A3)
-    # print(costs)
-    #
-    # print("\nn = 4:")
-    # A4 = np.asarray([[3, 7, 2, 19],
-    #                  [5, 12, np.nan, 5],
-    #                  [17, 1, np.inf, 2.4],
-    #                  [3, 13, 13, 12]])
-    #
-    # print("\nA:")
-    # print(A4)
-    #
-    # print("\ncosts:")
-    # costs = find_cycle_costs(A=A4)
-    # print(costs)
+    print("### 3 city example (n = 3) ###")
+    A3 = [[3, 7, 2],
+          [5, 12, 9],
+          [17, 1, np.inf]]
+
+    print("Cost matrix A:")
+    print(A3)
+
+    print("\nCycle costs:")
+    costs = find_cycle_costs(A=A3)
+    print(costs)
+
+    print("\n### 4 city Example (n = 4) ### ")
+    A4 = [[3, 7, 2, 19],
+          [5, 12, np.nan, 5],
+          [17, 1, np.inf, 2.4],
+          [3, 13, 13, 12]]
+
+    print("Cost matrix A:")
+    print(A4)
+
+    print("\nCycle costs:")
+    costs = find_cycle_costs(A=A4)
+    print(costs)
 
     # Poster Example
-    print("\nPoster Example, n = 4:")
-    A = np.asarray([[0, 7, 2, 7],
-                    [5, 0, 3, 5],
-                    [2, 1, 0, 8],
-                    [3, 13, 6, 0]])
+    print("\n###  Poster Example (n = 4) ###")
+    A = [[0, 7, 2, 7],
+         [5, 0, 3, 5],
+         [2, 1, 0, 8],
+         [3, 13, 6, 0]]
 
-    print("\nA:")
+    print("Cost matrix A:")
     print(A)
 
-    print("\ncosts:")
+    print("\nCycle costs:")
     costs = find_cycle_costs(A=A)
     print(costs)
