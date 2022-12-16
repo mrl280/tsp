@@ -27,7 +27,7 @@ def grover_enhanced_minimization(arr: list[int], _lower_bound: int = 0, _upper_b
 
     :param arr: list of positive ints:
         A list of input values >= 0. We are searching for the minimum.
-    :param verbose: bool (optional; default is arr[0]):
+    :param verbose: bool (optional; default is False):
         Print our extra information - useful for debugging.
 
     :return: int:
