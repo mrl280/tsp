@@ -70,7 +70,7 @@ def minimization_oracle(data_register: list[int], ancillary_register: list[int],
     for i in range(1, x):
 
         # qml.FlipSign(i, wires=ancillary_register)
-        # To improve sucess, we replace the phase inversion by a phase rotation through phi.
+        # # To improve sucess, we replace the phase inversion by a phase rotation through phi.
 
         # Implement flip_sign in pauli primatives
         arr_bin = to_list(n=i, n_wires=len(ancillary_register))  # Turn i into a state.
@@ -145,18 +145,18 @@ def minimization_circuit(data_register: list[int], ancillary_register: list[int]
     # Compute some of the parameters defined in Long et al.
     beta = math.asin(1 / math.sqrt(len(arr)))
     j_op = math.floor((pi / 2 - beta) / (2 * beta))
-    j = j_op
+    j = j_op + 1
     phi = 2 * math.asin(math.sin(pi / (4 * j + 6)) / math.sin(beta))
 
     print("phi: " + str(phi))
     print("j_op: " + str(j_op))
     print("j: " + str(j))
     print("beta: " + str(beta))
-    # Upon measurment at the (J + 1)th iteration, the marked state is obtained with certainty.
 
-    for _ in range(j+1):
+    # Upon measurment at the (J + 1)th iteration, the marked state is obtained with quasi-certainty.
+    for _ in range(j + 1):
         # Step 2: Use the oracle to mark solution states.
-        minimization_oracle(data_register=data_register, ancillary_register=ancillary_register, arr=arr, x=x, phi=phi)
+        minimization_oracle(data_register=data_register, ancillary_register=ancillary_register, arr=arr, x=x, phi=pi)
 
         # Step 3: Apply the Grover operator to amplify the probability of getting the correct solution.
         qml.GroverOperator(wires=data_register)
@@ -184,8 +184,6 @@ def grover_for_minimization(arr: list[int], x: int) -> bool:
     # We need enough ancillary qubits to represent 0 -> sum(arr) or x, whichever is larger.
     #  Recall you can represent up to 2^n - 1 with n bits.
     number_ancillary_qubits_required = max(math.ceil(math.log(sum(arr) + 1, 2)), math.ceil(math.log(x + 1, 2)))
-    # print("number of qubits required:")
-    # print(number_qubits_required)
 
     data_register = list(range(0, number_of_data_qubits_required))  # One data qubit for each element of arr
     ancillary_register = list(range(number_of_data_qubits_required,
@@ -205,10 +203,17 @@ def grover_for_minimization(arr: list[int], x: int) -> bool:
     print(len(values))
     print("\nvalues:")
     print(values)
+    plt.rcParams["figure.figsize"] = [7.50, 6]
+    plt.rcParams["figure.autolayout"] = True
     plt.bar(range(len(values)), values)
+    plt.xlabel("State", fontsize=25)
+    plt.ylabel("Probability", fontsize=25)
+    plt.xticks(fontsize=20)
+    plt.yticks(fontsize=20)
+
     plt.show()
 
-    # The second device for actully obtaining a sample.
+    # The second device is for actully obtaining a sample.
     device2 = qml.device("default.qubit", wires=data_register + ancillary_register, shots=1)
     qnode2 = qml.qnode(func=minimization_circuit, device=device2)(
         data_register=data_register, ancillary_register=ancillary_register, arr=arr, x=x, ret="sample")
@@ -231,9 +236,9 @@ def grover_for_minimization(arr: list[int], x: int) -> bool:
 
 if __name__ == "__main__":
 
-    # arr_ = [18, 10, 6, 7]
+    arr_ = [18, 10, 6, 7]
     # arr_ = [3, 5, 4, 3]
-    arr_ = [36, 5, 8, 14, 15, 2, 4, 16]
+    # arr_ = [36, 5, 8, 14, 15, 2, 4, 16]
     x_ = 3
 
     found_number_smaller_than_x = grover_for_minimization(arr=arr_, x=x_)
