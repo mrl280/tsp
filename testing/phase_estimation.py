@@ -46,5 +46,5 @@ phase_estimated = 4 * np.pi * (1 - phase_estimated)
 print("Phase estimated: " + str(phase_estimated))
 
 # From the phase, we can recove the eigenvalue!
-matrix_eigenvalue = np.exp(2 * np.pi * 1j * theta)
+matrix_eigenvalue = np.exp(2 * np.pi * 1j * phase_estimated)
 print("Matrix eigenvalue: " + str(matrix_eigenvalue))
