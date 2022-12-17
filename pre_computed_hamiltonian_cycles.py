@@ -1,6 +1,6 @@
 """
 Author: Michael Luciuk
-Date    Dec, 2022
+Date:   Dec, 2022
 
 We assume access to pre-computed Hamiltonian cycles, they are defined herein.
 """
