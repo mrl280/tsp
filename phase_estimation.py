@@ -140,9 +140,9 @@ def phase_estimation_circuit(unitary: list[list[float]], target_wires: list[int]
 if __name__ == "__main__":
 
     print("n = 3:")
-    A3 = np.asarray([[3, 7, 2],
-                     [5, 12, 9],
-                     [17, 1, 6]])
+    A3 = np.asarray([[0, 7, 2],
+                     [5, 0, 9],
+                     [17, 1, 0]])
 
     print("\nA:")
     print(A3)
