@@ -1,6 +1,6 @@
 """
 Author: Michael Luciuk
-Date    Dec, 2022
+Date:   Dec, 2022
 
 Find the minimum value in a list using the Durr & Hoyer Quantum algorithm for minimzation:
 C. Durr and P. Hoyer, “A Quantum Algorithm for Finding the Minimum,” 1996, doi: 10.48550/arxiv.quant-ph/9607014.
